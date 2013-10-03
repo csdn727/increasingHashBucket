@@ -10,12 +10,12 @@ using namespace std ;
 
 #define HASH_MAP_MAX_SIZE 1000
 #define HASH_MAP_MIN_SIZE 512
-#define BUCKET_MAX_SIZE 2
+#define BUCKET_MAX_SIZE 3
 #define _OK 0
 #define _ERR 1
 
 #define HASHNUM(x) \
-   ( ( x > _cur_size )? (x % _cur_size ) : x )
+   ( ( x >= _cur_size )? (x % _cur_size ) : x )
 
 
 struct HashEle
@@ -39,8 +39,8 @@ class HashBucketMgr
        int removeEle( int hashNum, HashEle &ele ) ;
        int findEle( int hashNum, HashEle &ele ) ;
        int reposition ( vector< pair< int, HashEle > > &repos ,int cur_size ) ;
-        void snapshot() ;
-       inline bool getSize()
+       void snapshot() ;
+       inline int getSize()
         {
             return _bucket.size() ;
         } ;
@@ -49,7 +49,7 @@ class HashBucketMgr
     vector<HashBucket *> _bucketMgr ;
     int _cur_size ;
     private :
-    int _processData( int id, char * data, int &hashNum, HashEle & ele ) ;
+    int _processData( int id, char * data, unsigned int &hashNum, HashEle & ele ) ;
     int _extendSize();
     public :
     int initialize() ;

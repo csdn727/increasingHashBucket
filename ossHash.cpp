@@ -49,6 +49,6 @@ int ossHash ( const char *data, int len )
    hash += hash>>17 ;
    hash ^= hash<<25 ;
    hash += hash>>6 ;
-   return hash ;
+   return hash % 1024 ;
 }
 #undef get16bits

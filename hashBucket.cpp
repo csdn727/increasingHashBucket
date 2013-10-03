@@ -9,13 +9,14 @@ int HashBucketMgr::initialize()
     int rc = _OK ;
     HashBucket *hb = NULL ;
     for (int i = 0; i < HASH_MAP_MIN_SIZE; ++i) {
-        hb = new (nothrow) HashBucket ;
+        hb = new (nothrow) HashBucket() ;
         if ( !hb )
         {
             printf("EOO_ERROR,can't initialize _bucketMgr");
             rc = _ERR ;
         }
         _bucketMgr.push_back(hb) ;
+        hb = NULL ;
     } ;
     _cur_size = _bucketMgr.size() ;
     return rc ;
@@ -25,7 +26,7 @@ int HashBucketMgr::isEleExist ( char *data, int id )
 {
     int rc = _OK ;
     int probe = 0 ;
-    int hashNum = 0 ;
+    unsigned int hashNum = 0 ;
     HashEle ele ;
     
     rc = _processData( id, data, hashNum, ele);
@@ -47,20 +48,22 @@ int HashBucketMgr::insertEle( char *data, int id )
 {
     int rc = _OK ;
     int probe = 0 ;
-    int hashNum = 0 ;
+    unsigned int hashNum = 0 ;
     HashEle ele ;
     
     rc = _processData( id, data, hashNum, ele);
-    if ( !rc ) {
+    if ( rc ) {
         probe = 10 ;
         printf("ERR in HashBucketMgr insertEle, probe is %d\n", probe) ;
         rc = _ERR ;
     } ;
-    if ( BUCKET_MAX_SIZE < _bucketMgr[ HASHNUM(hashNum) ]->getSize() )
+    // if the (_cur_size-HASH_MAP_MIN_SIZE)th bucket is greater than BUCKET_MAX_SIZE,then need extend
+    if ( ( (_cur_size-HASH_MAP_MIN_SIZE) == HASHNUM(hashNum) )
+        && BUCKET_MAX_SIZE < _bucketMgr[ HASHNUM(hashNum) ]->getSize() )
     {
         snapshot();
         rc = _extendSize();
-        if ( !rc ) {
+        if ( rc ) {
             probe = 20 ;
             printf("ERR in HashBucketMgr _extendSize, probe is %d\n", probe) ;
             rc = _ERR ;
@@ -68,11 +71,14 @@ int HashBucketMgr::insertEle( char *data, int id )
         snapshot();
     }
     rc = _bucketMgr[ HASHNUM(hashNum) ]->insertEle (hashNum, ele) ;
-    if ( !rc ) {
+    if ( rc ) {
         probe = 30 ;
         printf("ERR in HashBucketMgr insertEle, probe is %d\n", probe) ;
         rc = _ERR ;
     } ;
+    printf("id: %d,data: %s insert in bucket %d(size:%d),_cur_size is %d\n",
+           id, data, HASHNUM(hashNum),
+           _bucketMgr[ HASHNUM(hashNum) ]->getSize(), _cur_size);
     return rc ;
 }
 
@@ -80,17 +86,17 @@ int HashBucketMgr::removeEle( int id )
 {
     int rc = _OK ;
     int probe = 0 ;
-    int hashNum = 0 ;
+    unsigned int hashNum = 0 ;
     HashEle ele ;
     
     rc = _processData( id, NULL, hashNum, ele);
-    if ( !rc ) {
+    if ( rc ) {
         probe = 10 ;
         printf("ERR in HashBucketMgr removeEle, probe is %d\n", probe) ;
         rc = _ERR ;
     } ;
     rc = _bucketMgr[ HASHNUM(hashNum) ]->removeEle (hashNum, ele) ;
-    if ( !rc ) {
+    if ( rc ) {
         probe = 15 ;
         printf("ERR in HashBucketMgr removeEle, probe is %d\n", probe) ;
         rc = _ERR ;
@@ -102,18 +108,18 @@ int HashBucketMgr::findEle( int id )
 {
     int rc = _OK ;
     int probe = 0 ;
-    int hashNum = 0 ;
+    unsigned int hashNum = 0 ;
     HashEle ele ;
     
     rc = _processData( id, NULL, hashNum, ele);
-    if ( !rc ) {
+    if ( rc ) {
         probe = 10 ;
         printf("ERR in HashBucketMgr findEle, probe is %d\n", probe) ;
         rc = _ERR ;
         goto done ;
     } ;
     rc = _bucketMgr[ HASHNUM(hashNum) ]->findEle (hashNum, ele) ;
-    if ( !rc ) {
+    if ( rc ) {
         probe = 15 ;
         printf("ERR in HashBucketMgr findEle, probe is %d\n", probe) ;
         rc = _ERR ;
@@ -125,17 +131,17 @@ int HashBucketMgr::findEle( int id )
     return rc ;
 }
 
-int HashBucketMgr::_processData( int id, char *data, int &hashNum, HashEle &ele )
+int HashBucketMgr::_processData( int id, char *data, unsigned int &hashNum, HashEle &ele )
 {
     int rc = _OK ;
-    char *c;
+    char c[10];
     
     sprintf(c,"%d",id);
     
     ele.id = id ;
     ele.data = data ;
     
-    hashNum = ossHash ( c, sizeof(*c) );
+    hashNum = (unsigned int)ossHash ( c, sizeof(c) );
     return rc ;
 }
 
@@ -143,7 +149,7 @@ int HashBucketMgr::HashBucket::insertEle( int hashNum, HashEle &ele )
 {
     int rc = _OK ;
     
-    _bucket.insert( pair<int, HashEle>(hashNum,ele)) ;
+    _bucket.insert( pair<int, HashEle>(hashNum,ele) ) ;
     
     return rc ;
 }
@@ -249,6 +255,7 @@ int HashBucketMgr::_extendSize()
     } ;
     
     done :
+    printf("_extendSize done\n");
     return rc ;
 }
 
@@ -279,9 +286,9 @@ int HashBucketMgr::HashBucket::reposition(
 
 void HashBucketMgr::snapshot()
 {
-    printf("SNAPSHOT : \n_cur_size: %d", _cur_size );
+    printf("SNAPSHOT : _cur_size: %d\n", _cur_size );
     for (int i = 0;  i < _cur_size;  ++i) {
-        printf("In bucket %d", i) ;
+        printf("In bucket %d:\n", i) ;
         _bucketMgr[i]->snapshot();
     } ;
     printf("################################################################\n");
@@ -294,8 +301,9 @@ void HashBucketMgr::HashBucket::snapshot()
         if ( (i++ % 5) == 0) {
             printf("\n");
         }
-        printf( "id :%d, data %s\t", it->second.id, it->second.data );
+        printf( "id :%d, data :%s\t", it->second.id, it->second.data );
     } ;
+    printf("\n" );
 }
 
 
