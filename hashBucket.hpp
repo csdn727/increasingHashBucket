@@ -1,28 +1,29 @@
-#ifndfef _HASHBUCKET__
+#ifndef _HASHBUCKET__
 #define  _HASHBUCKET__
 
 #include <vector>
 #include <map>
 #include <stdio.h>
 
+
 using namespace std ;
 
-#define HASH_MAP_MAX_SIZE 1000;
-#define HASH_MAP_MIN_SIZE 512;
-#define BUCKET_MAX_SIZE 20
-#define _OK 0;
-#define _ERR
+#define HASH_MAP_MAX_SIZE 1000
+#define HASH_MAP_MIN_SIZE 512
+#define BUCKET_MAX_SIZE 2
+#define _OK 0
+#define _ERR 1
 
 #define HASHNUM(x) \
-    if ( x > _cur_size ) \
-       return (x % _cur_size ) ; \
-    return x;
+   ( ( x > _cur_size )? (x % _cur_size ) : x )
 
-struct hashEle
+
+struct HashEle
 {
     int id ;
     char * data ;
-}HashEle ;
+};
+
 
 class HashBucketMgr
 {
@@ -31,21 +32,21 @@ class HashBucketMgr
     {
        private:
         // _bucket is composed of hashNum and HashEle
-       MutilMap < int, HashEle > _bucket ;
+       multimap< int, HashEle > _bucket ;
        public :
        int insertEle( int hashNum, HashEle &ele ) ;
        int isEleExist( int hashNum, HashEle &ele ) ;
        int removeEle( int hashNum, HashEle &ele ) ;
        int findEle( int hashNum, HashEle &ele ) ;
-       int reposition ( vector< pair< int, HashELe > > &repos ,int cur_size ) ;
+       int reposition ( vector< pair< int, HashEle > > &repos ,int cur_size ) ;
         void snapshot() ;
        inline bool getSize()
         {
             return _bucket.size() ;
         } ;
-    }
+    };
     private :
-    vector<HashBucket> _bucketMgr ;
+    vector<HashBucket *> _bucketMgr ;
     int _cur_size ;
     private :
     int _processData( int id, char * data, int &hashNum, HashEle & ele ) ;
@@ -59,14 +60,16 @@ class HashBucketMgr
     void snapshot() ;
     ~HashBucketMgr()
     {
-        HashBucket hb = NULL ;
-        for (int i = 0; i < cur_size;  ++i) {
-            hb = _bucketMgr[i] ;
-            if ( hb )
-                delete hb ;
+        HashBucket * p ;
+        for (int i = 0;  i < _cur_size; ++i ) {
+            p = _bucketMgr[i] ;
+            if ( p ) {
+                delete p ;
+            }
         }
     }
-}
+
+};
 #endif
 
     
