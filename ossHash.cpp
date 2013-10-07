@@ -10,7 +10,7 @@
 #define get16bits(d) ((((unsigned int)(((const unsigned char *)(d))[1])) << 8)\
                        +(unsigned int)(((const unsigned char *)(d))[0]) )
 #endif
-int ossHash ( const char *data, int len )
+unsigned int ossHash ( const char *data, int len )
 {
    unsigned int hash = len, tmp ;
    int rem ;
@@ -49,6 +49,6 @@ int ossHash ( const char *data, int len )
    hash += hash>>17 ;
    hash ^= hash<<25 ;
    hash += hash>>6 ;
-   return hash % 1024 ;
+   return hash ;
 }
 #undef get16bits

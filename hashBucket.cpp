@@ -135,6 +135,7 @@ int HashBucketMgr::_processData( int id, char *data, unsigned int &hashNum, Hash
 {
     int rc = _OK ;
     char c[10];
+    memset(c,'\0',sizeof(c)) ;
     
     sprintf(c,"%d",id);
     
